@@ -22,6 +22,13 @@ Before running the algorithms, ensure you have the following set up:
 - **Hadoop**: Ensure Hadoop is configured and running for storing datasets.
 - **Scala**: The code is written in Scala using SparkML.
 
+Upload Datasets to Hadoop HDFS
+For each algorithm (Diabetes, Cancer, Housing), you need to upload the corresponding dataset to your Hadoop file system using the following command:
+
+```bash
+hadoop fs -mkdir /<your_directory_name>
+hadoop fs -copyFromLocal <dataset_file> /<your_directory_name>/
+```
 ### Step 1: Data Preparation
 
 The datasets for each algorithm are located in the corresponding directories:
