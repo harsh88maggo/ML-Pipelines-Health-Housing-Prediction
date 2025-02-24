@@ -1,0 +1,100 @@
+*******HADOOP COMMANDS*********
+
+hadoop fs -mkdir /MidTerm
+
+hadoop fs -copyFromLocal diabetes.csv /MidTerm/.
+
+*******SPARK ML COMMANDS*********
+
+//Import Statements
+
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.ml.feature.{VectorAssembler, StringIndexer}
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.classification.{RandomForestClassificationModel, RandomForestClassifier}
+import org.apache.spark.ml.tuning.{CrossValidator, CrossValidatorModel, ParamGridBuilder}
+import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator}
+import org.apache.spark.ml.param.ParamMap
+import org.apache.spark.sql.types.{IntegerType, DoubleType}
+
+//Read the dataset and store it in a variable
+
+val data_harshdeep= spark.read
+ .format("csv")
+ .option("header", "true")
+ .load("hdfs://10.128.0.7/MidTerm/diabetes.csv")
+
+//Show the data
+data_harshdeep.show()
+
+//Dropping null columns from dataset
+val df_harshdeep = data_harshdeep.drop("_c9", "_c10")
+
+//Show the dataframe
+df_harshdeep.show()
+
+//Typecasting the data into doubletype
+val dataset_harshdeep = df_harshdeep.select(
+ col("Pregnancies").cast(DoubleType),
+ col("Glucose").cast(DoubleType),
+ col("BloodPressure").cast(DoubleType),
+ col("SkinThickness").cast(DoubleType),
+ col("Insulin").cast(DoubleType),
+ col("BMI").cast(DoubleType),
+ col("DiabetesPedigreeFunction").cast(DoubleType),
+ col("Age").cast(DoubleType),
+ col("Outcome").cast(DoubleType))
+
+//Split the dataset into train and test
+
+val Array(trainingdata_harshdeep, testdata_harshdeep) = dataset_harshdeep.randomSplit(Array(0.8, 0.2), 521) 
+
+//Assembling the features using VectorAssembler
+
+val assembler_harshdeep = new VectorAssembler()
+ .setInputCols(Array("Pregnancies", "Glucose", "BloodPressure", "SkinThickness", "Insulin", "BMI", "DiabetesPedigreeFunction","Age"))
+ .setOutputCol("assembled-features")
+
+//Creating the Random Forest Object and passing the features
+val rf_harshdeep = new RandomForestClassifier()
+ .setFeaturesCol("assembled-features")
+ .setLabelCol("Outcome")
+ .setSeed(1234)
+
+//Setting up the pipeline
+
+val pipeline_harshdeep = new Pipeline()
+  .setStages(Array(assembler_harshdeep, rf_harshdeep))
+
+//Evaluator for our model
+val evaluator_harshdeep = new MulticlassClassificationEvaluator()
+  .setLabelCol("Outcome")
+  .setPredictionCol("prediction")
+  .setMetricName("accuracy")
+
+//Defining the hyperparameters
+val paramGrid_harshdeep = new ParamGridBuilder()  
+  .addGrid(rf_harshdeep.maxDepth, Array(4,6,8))
+  .addGrid(rf_harshdeep.numTrees, Array(1,2,4)).build()
+
+//Cross validator
+val cross_validator_harshdeep = new CrossValidator()
+  .setEstimator(pipeline_harshdeep)
+  .setEvaluator(evaluator_harshdeep)
+  .setEstimatorParamMaps(paramGrid_harshdeep)
+  .setNumFolds(3)
+
+//Train the model
+
+val cvModel_harshdeep = cross_validator_harshdeep.fit(trainingdata_harshdeep)
+
+//Prediction using test data
+
+val predictions_harshdeep = cvModel_harshdeep.transform(testdata_harshdeep)
+
+//Model Evaluation
+
+val accuracy_harshdeep = evaluator_harshdeep.evaluate(predictions_harshdeep)
+
+println("accuracy on test data = " + accuracy_harshdeep)

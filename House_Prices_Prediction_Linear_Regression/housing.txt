@@ -1,0 +1,102 @@
+***********HADOOP COMMANDS*********
+
+hadoop fs -mkdir /MidTerm
+
+hadoop fs -copyFromLocal train.csv /MidTerm/.
+
+*******SPARK ML COMMANDS*********
+
+//Import Statements
+import org.apache.spark.sql.functions._
+import org.apache.spark.ml.feature.{VectorAssembler}
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.regression.{LinearRegression}
+import org.apache.spark.ml.tuning.{CrossValidator, CrossValidatorModel, ParamGridBuilder}
+import org.apache.spark.ml.evaluation.{RegressionEvaluator}
+import org.apache.spark.ml.param.ParamMap
+import org.apache.spark.sql.types.{DoubleType}
+
+//Read CSV file
+val raw_data_harshdeep = spark.read
+ .format("csv")
+ .option("header", "true")
+ .load("hdfs://10.128.0.7/MidTerm/train.csv")
+
+//Drop NA values
+
+val clean_harshdeep = raw_data_harshdeep.na.drop()
+
+//Selecting columns for model training
+
+val data_harshdeep = clean_harshdeep.select(
+col("MSSubClass").cast(DoubleType),
+ col("LotArea").cast(DoubleType),
+ col("OverallCond").cast(DoubleType),
+ col("TotalBsmtSF").cast(DoubleType),
+ col("1stFlrSF").cast(DoubleType),
+ col("GrLivArea").cast(DoubleType),
+ col("FullBath").cast(DoubleType),
+ col("TotRmsAbvGrd").cast(DoubleType),
+ col("GarageArea").cast(DoubleType),
+ col("WoodDeckSF").cast(DoubleType),
+ col("OpenPorchSF").cast(DoubleType),
+ col("SalePrice").cast(DoubleType))
+
+//Splitting the data into train and test sets
+val Array(trainingData_harshdeep, testData_harshdeep) = data_harshdeep.randomSplit(Array(0.8, 0.2), 521) 
+
+//Creating the vector assembler
+val assembler_harshdeep = new VectorAssembler()
+.setInputCols(Array("MSSubClass", "LotArea", "OverallCond", "TotalBsmtSF", "1stFlrSF", "GrLivArea", "FullBath", "TotRmsAbvGrd", "GarageArea", "WoodDeckSF", "OpenPorchSF"))
+.setOutputCol("assembled-features")
+
+//Instantiating the Linear Regression Algorithm
+val lr_harshdeep = new LinearRegression() 
+ .setFeaturesCol("assembled-features")
+ .setLabelCol("SalePrice")
+
+//Creating the pipeling
+
+val pipeline_harshdeep = new Pipeline()
+ .setStages(Array(assembler_harshdeep, lr_harshdeep))
+
+//Setting up the evaluator
+val evaluator_harshdeep = new RegressionEvaluator()
+ .setLabelCol("SalePrice")
+ .setPredictionCol("prediction")
+ .setMetricName("r2")
+
+//Creating the cross validator
+val cross_validator_harshdeep = new CrossValidator()
+ .setEstimator(pipeline_harshdeep)
+ .setEvaluator(evaluator_harshdeep)
+ .setEstimatorParamMaps(new ParamGridBuilder().build)
+ .setNumFolds(3)
+
+
+val cvModel_harshdeep = cross_validator_harshdeep.fit(trainingData_harshdeep)
+
+val predictions_harshdeep = cvModel_harshdeep.transform(testData_harshdeep)
+
+predictions_harshdeep
+ .select(col("MSSubClass"),
+ col("LotArea"),
+ col("OverallCond"),
+ col("TotalBsmtSF"),
+ col("1stFlrSF"),
+ col("GrLivArea"),
+ col("FullBath"),
+ col("TotRmsAbvGrd"),
+ col("GarageArea"),
+ col("WoodDeckSF"),
+ col("OpenPorchSF"),
+ col("SalePrice"),
+ col("prediction"))
+ .write
+ .format("csv")
+ .save("hdfs://10.128.0.7/MidTerm/housing/output/")
+
+//Evaluating the model
+val r2_harshdeep = evaluator_harshdeep.evaluate(predictions_harshdeep)
+
+println("r-squared on test data = " + r2_harshdeep)

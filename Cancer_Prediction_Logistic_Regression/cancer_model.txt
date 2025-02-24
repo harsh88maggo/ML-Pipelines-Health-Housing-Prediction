@@ -1,0 +1,92 @@
+*******HADOOP COMMANDS*********
+
+hadoop fs -mkdir /MidTerm
+
+hadoop fs -copyFromLocal cancer.csv /MidTerm/.
+
+*******SPARK ML COMMANDS*********
+
+//Import Statements
+
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.ml.feature.{VectorAssembler, StringIndexer}
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.tuning.{CrossValidator, CrossValidatorModel, ParamGridBuilder}
+import org.apache.spark.ml.evaluation.{MulticlassClassificationEvaluator}
+import org.apache.spark.ml.param.ParamMap
+import org.apache.spark.sql.types.{IntegerType, DoubleType}
+import org.apache.spark.ml.classification.LogisticRegression
+
+//Read the csv file
+val data_harshdeep= spark.read
+ .format("csv")
+ .option("header", "true")
+ .load("hdfs://10.128.0.7/MidTerm/cancer.csv")
+
+//Removing ID column
+val df_harshdeep = data_harshdeep.drop("id")
+
+//Type Casting to Double
+val dataset_harshdeep = df_harshdeep.select(
+ col("Clump Thickness").cast(DoubleType),
+ col("UofCSize").cast(DoubleType),
+ col("UofCShape").cast(DoubleType),
+ col("Marginal Adhesion").cast(DoubleType),
+ col("SECSize").cast(DoubleType),
+ col("Bare Nuclei").cast(DoubleType),
+ col("Bland Chromatin").cast(DoubleType),
+col("Normal Nucleoli").cast(DoubleType),
+ col("Mitoses").cast(DoubleType),
+ col("Class").cast(DoubleType))
+
+//Split the dataset into train and test
+
+val Array(trainingdata_harshdeep, testdata_harshdeep) = dataset_harshdeep.randomSplit(Array(0.8, 0.2), 521) 
+
+//Assembling the features using VectorAssembler
+
+val assembler_harshdeep = new VectorAssembler()
+ .setInputCols(Array("Clump Thickness", "UofCSize", "UofCShape", "Marginal Adhesion", "SECSize", "Bare Nuclei", "Normal Nucleoli","Mitoses"))
+ .setOutputCol("assembled-features")
+
+//Creating the Logistic Regression object and passing the features
+val lr_harshdeep = new LogisticRegression()
+ .setFeaturesCol("assembled-features")
+ .setLabelCol("Class")
+
+//Setting up the pipeline
+
+val pipeline_harshdeep = new Pipeline()
+  .setStages(Array(assembler_harshdeep, lr_harshdeep))
+
+//Evaluator for our model
+val evaluator_harshdeep = new MulticlassClassificationEvaluator()
+  .setLabelCol("Class")
+  .setPredictionCol("prediction")
+  .setMetricName("accuracy")
+
+val paramGrid_harshdeep = new ParamGridBuilder()
+  .addGrid(lr_harshdeep.regParam, Array(0.1, 0.01))
+  .build()
+
+//Cross validator
+val cross_validator_harshdeep = new CrossValidator()
+  .setEstimator(pipeline_harshdeep)
+  .setEvaluator(evaluator_harshdeep)
+  .setEstimatorParamMaps(paramGrid_harshdeep)
+  .setNumFolds(3)
+
+//Train the model
+
+val cvModel_harshdeep = cross_validator_harshdeep.fit(trainingdata_harshdeep)
+
+//Prediction using test data
+
+val predictions_harshdeep = cvModel_harshdeep.transform(testdata_harshdeep)
+
+//Model Evaluation
+
+val accuracy_harshdeep = evaluator_harshdeep.evaluate(predictions_harshdeep)
+
+println("accuracy on test data = " + accuracy_harshdeep)
