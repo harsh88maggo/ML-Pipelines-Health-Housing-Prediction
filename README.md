@@ -1,29 +1,29 @@
-# Machine Learning Health and Housing Predictions
+# Machine Learning Health and Housing Prediction Pipelines
 
-This project implements three machine learning algorithms using Apache Spark ML for various prediction tasks, including diabetes risk prediction, cancer classification, and housing price prediction. Each algorithm utilizes a different machine learning model, data preprocessing steps, and evaluation techniques.
+This project implements three machine learning pipelines using Apache Spark ML for various prediction tasks, including diabetes risk prediction, cancer classification, and housing price prediction. Each pipeline consists of data preprocessing, model training, evaluation, and reporting, leveraging Apache Spark and Hadoop for efficient processing of large datasets.
 
 ## Project Overview
 
-The project contains three distinct machine learning algorithms:
+The project contains three distinct machine learning pipelines:
 
-1. **Diabetes Prediction**: Predicts if a person is at risk for diabetes based on features like glucose levels, BMI, and age.
-2. **Cancer Classification**: Classifies tumors as cancerous or not based on various features such as clump thickness, cell size, and shape.
-3. **Housing Price Prediction**: Predicts housing prices based on features like square footage, number of bathrooms, etc.
+1. **Diabetes Prediction Pipeline**: Predicts if a person is at risk for diabetes based on features like glucose levels, BMI, and age.
+2. **Cancer Classification Pipeline**: Classifies tumors as cancerous or not based on features such as clump thickness, cell size, and shape.
+3. **Housing Price Prediction Pipeline**: Predicts housing prices based on features like square footage, number of bathrooms, etc.
 
-Each algorithm is contained in its respective directory with the dataset, model code, and a report summarizing the approach, results, and evaluation.
+Each pipeline is contained in its respective directory with the dataset, model code, and a report summarizing the approach, results, and evaluation.
 
 ## Setup Instructions
 
 ### Prerequisites
 
-Before running the algorithms, ensure you have the following set up:
+Before running the pipelines, ensure you have the following set up:
 
 - **Apache Spark**: Set up a Spark environment (either standalone or on a cluster).
 - **Hadoop**: Ensure Hadoop is configured and running for storing datasets.
 - **Scala**: The code is written in Scala using SparkML.
 
-Upload Datasets to Hadoop HDFS
-For each algorithm (Diabetes, Cancer, Housing), you need to upload the corresponding dataset to your Hadoop file system using the following command:
+Upload Datasets to Hadoop HDFS  
+For each pipeline (Diabetes, Cancer, Housing), you need to upload the corresponding dataset to your Hadoop file system using the following command:
 
 ```bash
 hadoop fs -mkdir /<your_directory_name>
